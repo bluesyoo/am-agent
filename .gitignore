@@ -1,0 +1,78 @@
+####################
+# Maven build
+####################
+target/
+*.jar
+*.war
+*.ear
+
+####################
+# Java
+####################
+*.class
+*.log
+
+####################
+# IntelliJ IDEA
+####################
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+####################
+# VSCode
+####################
+.vscode/
+
+####################
+# STS (Spring Tool Suite / Eclipse 기반)
+####################
+.project
+.classpath
+.factorypath
+.settings/
+.sts4-cache/
+bin/
+tmp/
+
+####################
+# OS-specific files
+####################
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*~
+
+####################
+# Environment files
+####################
+*.local
+*.secret
+
+####################
+# Maven Wrapper
+####################
+.mvn/
+mvnw
+mvnw.cmd
+
+####################
+# Test / Coverage
+####################
+surefire-reports/
+jacoco.exec
+coverage/
+*.lcov
+
+####################
+# Backup / swap / temp
+####################
+*.bak
+*.tmp
+*.swp
+*.swo
+*.swn
+*.old

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+  <Properties>
+    <Property name="context.name">${sys:spring.application.name}</Property>
+  </Properties>
+
+  <Appenders>
+    <Console name="consoleAppender" target="SYSTEM_OUT">
+      <PatternLayout>
+        <Pattern>%d{MM-dd HH:mm:ss} [%-5level] %logger{0}.%M:%L # %msg%n</Pattern>
+      </PatternLayout>
+    </Console>
+
+    <RollingFile name="fileAppender">
+      <FileName>/volume/stage/logs/${context.name}.log</FileName>
+      <FilePattern>/volume/stage/logs/${context.name}.log.%d{yyyy-MM-dd}</FilePattern>
+      <PatternLayout>
+        <Pattern>%d{MM-dd HH:mm:ss} [%-5level] %logger{0}.%M:%L # %msg%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+      </Policies>
+      <DefaultRolloverStrategy>
+        <Delete basePath="/volume/stage/logs" maxDepth="1">
+          <IfAll>
+            <IfFileName glob="${context.name}.log.*"/>
+            <IfAccumulatedFileCount exceeds="1"/>
+          </IfAll>
+        </Delete>
+      </DefaultRolloverStrategy>
+    </RollingFile>
+  </Appenders>
+
+  <Loggers>
+    <Logger name="org.apache.kafka.clients" level="WARN" additivity="false"/>
+    <Logger name="org.springframework.kafka" level="WARN" additivity="false"/>
+    <Logger name="org.apache.kafka.common.utils.AppInfoParser" level="ERROR" additivity="false"/>
+
+    <Root level="INFO">
+      <AppenderRef ref="consoleAppender"/>
+      <AppenderRef ref="fileAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>
