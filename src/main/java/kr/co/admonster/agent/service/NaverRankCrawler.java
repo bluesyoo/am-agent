@@ -1,6 +1,7 @@
 package kr.co.admonster.agent.service;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -95,7 +96,7 @@ public class NaverRankCrawler {
 				int total = adElements.count();
 				log.info("Found {} powerlink ad elements.", total);
 				
-				Map<String, Integer> adRanks = new HashMap<>();
+				LinkedHashMap<String, Integer> adRanks = new LinkedHashMap<>();
 				
 				// 각 광고 아이템을 순회하며 목표 URL과 일치하는 광고를 찾음
 				for (int inx = 0; inx < total; inx++) {
@@ -175,7 +176,7 @@ public class NaverRankCrawler {
 				int total = adElements.count();
 				log.info("Found {} shopping ad elements.", total);
 				
-				Map<String, Integer> adRanks = new HashMap<>();
+				LinkedHashMap<String, Integer> adRanks = new LinkedHashMap<>();
 				
 				for (int inx = 0; inx < total; inx++) {
 					Locator currentAd = adElements.nth(inx);

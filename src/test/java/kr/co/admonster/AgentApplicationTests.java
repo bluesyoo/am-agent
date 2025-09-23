@@ -62,11 +62,11 @@ class AgentApplicationTests {
 				.previousError(0D)
 				.integralError(0D)
 				
-				.pidClusterId("1")
+				.pidClusterId(1)
 				.pidGains(new PidGains(0D, 0D, 0D, 1D))
 				
-				.customerId("1")
-				.accessLicense("333")
+				.accountNo(1L)
+				.accessLicense("")
 				.secretKey("444")
 				.build();
 		

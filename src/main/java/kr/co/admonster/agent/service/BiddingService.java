@@ -2,6 +2,7 @@ package kr.co.admonster.agent.service;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,17 +45,22 @@ public class BiddingService {
 		// Step 1: Create a BiddingResultMessage from the incoming task message.
 		BiddingResultMessage resultMessage = BiddingResultMessage.from(taskMessage);
 		
-		Map<String, Long> timestamps = resultMessage.getTimestamps();
+		LinkedHashMap<String, Long> timestamps = resultMessage.getTimestamps();
 		
 		try {
-			timestamps.put(TimestampType.TOTAL_START.getValue(), System.currentTimeMillis());
-			
-			process(taskMessage, resultMessage, timestamps);
-			
-			update(taskMessage, resultMessage, timestamps);
-			
-			timestamps.put(TimestampType.TOTAL_END.getValue(), System.currentTimeMillis());
-			resultMessage.setResultState(ResultState.SUCCESS);
+//			생성시간이 일정 기준을 초과시 SKIP
+//			if (taskMessage.getTimestamp().isAfter(LocalDateTime.now().minusSeconds(30L))) {
+				timestamps.put(TimestampType.TOTAL_START.getValue(), System.currentTimeMillis());
+				
+				process(taskMessage, resultMessage, timestamps);
+				
+				update(taskMessage, resultMessage, timestamps);
+				
+				timestamps.put(TimestampType.TOTAL_END.getValue(), System.currentTimeMillis());
+				resultMessage.setResultState(ResultState.SUCCESS);
+//			} else {
+//				resultMessage.setResultState(ResultState.SKIPPED);
+//			}
 		} catch (Exception e) {
 			log.error("Bidding task failed for keyword: {}, error: {}", taskMessage.getKeyword(), e.getMessage());
 			
@@ -118,6 +124,11 @@ public class BiddingService {
 	// Step 4: Call the API with the now complete resultMessage.
 	// The method should be apiClient.updateBid(resultMessage).
 	private void update(BiddingTaskMessage taskMessage, BiddingResultMessage resultMessage, Map<String, Long> timestamps) throws Exception {
+		// ############## 개발 코드 #################
+		if (taskMessage.getAccessLicense().length() == 0) {
+			return;
+		}
+		
 		timestamps.put(TimestampType.API_CALL_START.getValue(), System.currentTimeMillis());
 		
 		// 1. 요청에 필요한 데이터 준비
@@ -143,7 +154,7 @@ public class BiddingService {
 		// 4. Feign Client 호출 (헤더 값들을 직접 전달)
 		this.naverSearchadClient.updateBid(
 				taskMessage.getAccessLicense(),
-				taskMessage.getCustomerId(),
+				String.valueOf(taskMessage.getAccountNo()),
 				String.valueOf(timestamp),
 				signature,
 				requestBody);

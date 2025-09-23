@@ -43,7 +43,7 @@ spring:
     client-id: am-client                # 클라이언트 식별자 (로깅 등 추적용)
     consumer:
       group-id: am-group                # Kafka consumer group ID
-      auto-offset-reset: earliest       # 처음부터 읽기 (또는 latest)
+      auto-offset-reset: latest         # 처음부터 읽기 (또는 latest)
       enable-auto-commit: false         # 수동 커밋 권장
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
