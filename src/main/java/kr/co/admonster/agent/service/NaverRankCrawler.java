@@ -91,13 +91,13 @@ public class NaverRankCrawler {
 				
 				// 최소 하나의 광고가 나타날 때까지 최대 10초 대기
 				adElements.first().waitFor(new Locator.WaitForOptions().setTimeout(10000));
-				int total = adElements.count();
-				log.info("Found {} powerlink ad elements.", total);
+				int adsCount = adElements.count();
+				log.info("Found {} powerlink ad elements.", adsCount);
 				
 				LinkedHashMap<String, Integer> adRanks = new LinkedHashMap<>();
 				
 				// 각 광고 아이템을 순회하며 목표 URL과 일치하는 광고를 찾음
-				for (int inx = 0; inx < total; inx++) {
+				for (int inx = 0; inx < adsCount; inx++) {
 					Locator currentAd = adElements.nth(inx);
 					
 					// 'lnk_url' 클래스를 가진 요소의 텍스트를 추출
@@ -114,17 +114,18 @@ public class NaverRankCrawler {
 				int clientRank = Optional.ofNullable(adRanks.get(message.getDisplayUrl()))
 						.orElse(-1);
 				
-				message.setCurrentRank(clientRank);
+				message.setViewedRank(clientRank);
+				message.setViewedSlot(adsCount);
 				message.setCompetitorRanks(adRanks);
 				log.info("Powerlink ad final rank result: Client's ad rank is {}. Found {} ads.", clientRank, adRanks.size());
 			} else {
 				log.warn("Powerlink ad section does not exist for keyword '{}'.", keyword);
-				message.setCurrentRank(-1);
+				message.setViewedRank(-1);
 			}
 		} catch (Exception e) {
 			log.error("Powerlink crawling failed for keyword '{}' with error: {}", keyword, e.getMessage(), e);
 			// 예외 발생 시 메시지 객체의 순위를 -1로 설정하고 예외를 다시 던짐
-			message.setCurrentRank(-1);
+			message.setViewedRank(-1);
 			throw e;
 		}
 	}
@@ -171,12 +172,12 @@ public class NaverRankCrawler {
 				Locator adElements = adSection.locator(selectorAdElement);
 				
 				adElements.first().waitFor(new Locator.WaitForOptions().setTimeout(10000));
-				int total = adElements.count();
-				log.info("Found {} shopping ad elements.", total);
+				int adsCount = adElements.count();
+				log.info("Found {} shopping ad elements.", adsCount);
 				
 				LinkedHashMap<String, Integer> adRanks = new LinkedHashMap<>();
 				
-				for (int inx = 0; inx < total; inx++) {
+				for (int inx = 0; inx < adsCount; inx++) {
 					Locator currentAd = adElements.nth(inx);
 					
 					// URL 위치: 모바일 / PC 분기
@@ -191,16 +192,19 @@ public class NaverRankCrawler {
 				int clientRank = Optional.ofNullable(adRanks.get(message.getDisplayUrl()))
 						.orElse(-1);
 				
-				message.setCurrentRank(clientRank);
+				message.setViewedRank(clientRank);
+				message.setViewedSlot(adsCount);
 				message.setCompetitorRanks(adRanks);
 				log.info("Shopping ad final rank result: Client's ad rank is {}. Found {} ads.", clientRank, adRanks.size());
 			} else {
 				log.warn("Shopping ad section does not exist for keyword '{}'.", keyword);
-				message.setCurrentRank(-1);
+				message.setViewedRank(-1);
+				message.setViewedSlot(0);
 			}
 		} catch (Exception e) {
 			log.error("Shopping crawling failed for keyword '{}' with error: {}", keyword, e.getMessage(), e);
-			message.setCurrentRank(-1);
+			message.setViewedRank(-1);
+			message.setViewedSlot(0);
 			throw e;
 		}
 	}

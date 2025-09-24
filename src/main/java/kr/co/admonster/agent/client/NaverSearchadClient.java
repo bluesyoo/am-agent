@@ -4,8 +4,8 @@ import java.util.Map;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -21,13 +21,14 @@ public interface NaverSearchadClient {
 	 * @param keywordId 갱신할 키워드 ID
 	 * @param requestBody 입찰가를 담은 DTO 리스트
 	 */
-	@PutMapping("/ncc/keywords/{keywordId}")
+	@PutMapping("/ncc/keywords/{nccKeywordId}")
 	void updateBid(
 		@RequestHeader("X-API-KEY") String apiKey,
 		@RequestHeader("X-CUSTOMER") String customerId,
 		@RequestHeader("X-Timestamp") String timestamp,
 		@RequestHeader("X-Signature") String signature,
-		@RequestBody Map<String, Object> requestBody
+		@PathVariable String nccKeywordId,
+		@RequestParam long bidAmt
 	);
 
 	/**

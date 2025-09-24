@@ -42,22 +42,23 @@ spring:
       - localhost:9094
     client-id: am-client                # 클라이언트 식별자 (로깅 등 추적용)
     consumer:
-      group-id: am-group                # Kafka consumer group ID
-      auto-offset-reset: latest         # 처음부터 읽기 (또는 latest)
-      enable-auto-commit: false         # 수동 커밋 권장
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest       # [earliest|latest]
+      enable-auto-commit: false         # 수동 커밋 권장
+      group-id: am-group                # Kafka consumer group ID
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all                         # all: 리더 + 팔로워 모두 ack
-      retries: 3                        # 전송 실패 시 재시도 횟수
       batch-size: 16384                 # 배치 전송 크기 (바이트)
-      linger-ms: 1                      # 지정 시간(ms) 내 대기 후 배치 전송
       buffer-memory: 33554432           # 버퍼 메모리 (바이트)
+      linger-ms: 1                      # 지정 시간(ms) 내 대기 후 배치 전송
+      retries: 3                        # 전송 실패 시 재시도 횟수
     listener:
-      concurrency: 3                    # Consumer 동시 실행 수
       ack-mode: manual                  # 수동 ack (manual 또는 manual_immediate)
+      concurrency: 3                    # Consumer 동시 실행 수
+      enabled: true
     properties:
       security.protocol: PLAINTEXT      # SASL/SSL 등 보안 설정 가능
 

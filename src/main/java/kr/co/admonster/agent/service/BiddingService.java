@@ -1,11 +1,10 @@
 package kr.co.admonster.agent.service;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
 import kr.co.admonster.agent.client.NaverSearchadClient;
@@ -48,23 +47,20 @@ public class BiddingService {
 		LinkedHashMap<String, Long> timestamps = resultMessage.getTimestamps();
 		
 		try {
-//			생성시간이 일정 기준을 초과시 SKIP
-//			if (taskMessage.getTimestamp().isAfter(LocalDateTime.now().minusSeconds(30L))) {
-				timestamps.put(TimestampType.TOTAL_START.getValue(), System.currentTimeMillis());
-				
-				process(taskMessage, resultMessage, timestamps);
-				
-				update(taskMessage, resultMessage, timestamps);
-				
-				timestamps.put(TimestampType.TOTAL_END.getValue(), System.currentTimeMillis());
-				resultMessage.setResultState(ResultState.SUCCESS);
-//			} else {
-//				resultMessage.setResultState(ResultState.SKIPPED);
-//			}
+			timestamps.put(TimestampType.TOTAL_START.getValue(), System.currentTimeMillis());
+			
+			process(taskMessage, resultMessage, timestamps);
+			
+			update(taskMessage, resultMessage, timestamps);
+			
+			timestamps.put(TimestampType.TOTAL_END.getValue(), System.currentTimeMillis());
+			
+			resultMessage.setResultState(ResultState.SUCCESS);
 		} catch (Exception e) {
 			log.error("Bidding task failed for keyword: {}, error: {}", taskMessage.getKeyword(), e.getMessage());
 			
 			timestamps.put(TimestampType.TOTAL_END.getValue(), System.currentTimeMillis());
+			
 			resultMessage.setResultState(ResultState.FAILED);
 		} finally {
 			this.messageProducer.send(resultMessage);
@@ -72,7 +68,7 @@ public class BiddingService {
 	}
 	
 	private void process(BiddingTaskMessage taskMessage, BiddingResultMessage resultMessage, Map<String, Long> timestamps) throws Exception {
-		double finalBid = 0D;
+		double finalPrice = 0D;
 		
 		switch (taskMessage.getBiddingType()) {
 		case AI:
@@ -89,27 +85,27 @@ public class BiddingService {
 			this.pidCalculator.calculate(resultMessage);
 			timestamps.put(TimestampType.CALCULATOR_END.getValue(), System.currentTimeMillis());
 			
-			finalBid = resultMessage.getNewBid();
+			finalPrice = resultMessage.getFinalPrice();
 			break;
 			
 		case SCHEDULED:
 			// 크롤링과 PID 계산을 생략하고, 미리 설정된 입찰가를 사용
 			log.info("Scheduled Bidding detected. Skipping crawl and PID calculation.");
-			finalBid = taskMessage.getPresetBid();
+			finalPrice = taskMessage.getCurrentBid(); // bidding_task 생성시 설정
 			break;
 			
 		case ESTIMATED:
 			// 매체사 API를 통해 예상 입찰가 조회
 			timestamps.put("estimate_api_start", System.currentTimeMillis());
 			// getEstimatedBid 메서드는 예상 입찰가를 반환해야 합니다.
-//			finalBid = apiClient.getEstimatedBid(taskMessage.getKeyword(), taskMessage.getAccessLicense(), taskMessage.getSecretKey());
+//			finalPrice = apiClient.getEstimatedBid(taskMessage.getKeyword(), taskMessage.getAccessLicense(), taskMessage.getSecretKey());
 			timestamps.put("estimate_api_end", System.currentTimeMillis());
 			break;
 			
 		case PREDICTIVE:
 			// 예측 모델을 통해 입찰가 산정 (시간 측정)
 			timestamps.put("predictive_start", System.currentTimeMillis());
-//			finalBid = getPredictedBid(taskMessage);
+//			finalPrice = getPredictedBid(taskMessage);
 			timestamps.put("predictive_end", System.currentTimeMillis());
 			
 		default:
@@ -117,8 +113,9 @@ public class BiddingService {
 			throw new IllegalArgumentException("Invalid bidding type.");
 		}
 		
-		finalBid = Math.min(finalBid, taskMessage.getMaxBid());
-		resultMessage.setNewBid(finalBid);
+		finalPrice = Math.max(Math.min(finalPrice, taskMessage.getMaximumBid()), taskMessage.getMinimumBid());
+		
+		resultMessage.setFinalPrice(finalPrice);
 	}
 	
 	// Step 4: Call the API with the now complete resultMessage.
@@ -132,32 +129,32 @@ public class BiddingService {
 		timestamps.put(TimestampType.API_CALL_START.getValue(), System.currentTimeMillis());
 		
 		// 1. 요청에 필요한 데이터 준비
-		long timestamp = Instant.now().getEpochSecond();
-		String method = "PUT";
-		String requestUri = "/ncc/keywords";
+		String keywordId = taskMessage.getKeywordId();
+		String accountNo = taskMessage.getAccountNo();
+		String accessLicense = taskMessage.getAccessLicense();
+		String secretKey = taskMessage.getSecretKey();
+		
+		Double finalPrice = resultMessage.getFinalPrice();
+		
+		String timestamp = String.valueOf(Instant.now().getEpochSecond());
+		String method = HttpMethod.PUT.name();
+		String requestUri = "/ncc/keywords/" + keywordId;
 		
 		// 2. 시그니처 생성
 		String signature = SignatureGenerator.generate(
-				String.valueOf(timestamp),
+				timestamp,
 				method,
 				requestUri,
-				taskMessage.getSecretKey());
+				secretKey);
 		
-		// 3. API 요청 본문(Body) 생성
-		Map<String, Object> keywordBid = new HashMap<>();
-		keywordBid.put("keywordId", resultMessage.getKeywordId());
-		keywordBid.put("newBid", resultMessage.getNewBid());
-		
-		Map<String, Object> requestBody = new HashMap<>();
-		requestBody.put("bids", List.of(keywordBid));
-		
-		// 4. Feign Client 호출 (헤더 값들을 직접 전달)
+		// 3. Feign Client 호출 (헤더 값들을 직접 전달)
 		this.naverSearchadClient.updateBid(
-				taskMessage.getAccessLicense(),
-				String.valueOf(taskMessage.getAccountNo()),
-				String.valueOf(timestamp),
+				accessLicense,
+				accountNo,
+				timestamp,
 				signature,
-				requestBody);
+				keywordId,
+				finalPrice.longValue());
 		
 		timestamps.put(TimestampType.API_CALL_END.getValue(), System.currentTimeMillis());
 	}

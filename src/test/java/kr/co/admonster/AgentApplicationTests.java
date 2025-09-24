@@ -1,5 +1,7 @@
 package kr.co.admonster;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,51 +25,52 @@ class AgentApplicationTests {
 	 * private String keyword;
 	 * private String displayUrl;
 	 * 
-	 * // 입찰 상품 정보
-	 * private BiddingType biddingType;
-	 * private Double maxBid;
+	 * private DeviceType deviceType;
+	 * private CampaignType campaignType;
+	 * private biddingType biddingType;
 	 * 
-	 * // 입찰 실행 정보
 	 * private Integer targetRank;         // 목표 순위
 	 * private Double currentBid;          // 현재 입찰가
-	 * private Double presetBid;           // 설정 입찰가
+	 * private Double minimumBid;
+	 * private Double maximumBid;
 	 * 
 	 * private Double previousError;
 	 * private Double integralError;
 	 * 
-	 * private PidGains pidGains;
-	 * 
-	 * // api 정보
-	 * private String customerId;
+	 * private String accountNo;
 	 * private String accessLicense;
 	 * private String secretKey;
+	 * 
+	 * private Integer pidClusterId;
+	 * private PidGains pidGains;
 	 */
 	@Test
 	void contextLoads() throws Exception {
 		BiddingTaskMessage taskMessage = BiddingTaskMessage.builder()
 				.messageType(MessageType.BIDDING)
+				
+				.keywordId(UUID.randomUUID().toString())
 				.keyword("평택포장이사")
 				.displayUrl("m.mcygclean.com")
 				
 				.deviceType(DeviceType.PC)
 				.campaignType(CampaignType.WEB_SITE)
 				.biddingType(BiddingType.AI)
-				.minBid(70D)
-				.maxBid(200D)
 				
 				.targetRank(3)
 				.currentBid(160D)
-				.presetBid(0D)
+				.minimumBid(70D)
+				.maximumBid(200D)
 				
 				.previousError(0D)
 				.integralError(0D)
 				
+				.accountNo("123456789")
+				.accessLicense("")
+				.secretKey("")
+				
 				.pidClusterId(1)
 				.pidGains(new PidGains(0D, 0D, 0D, 1D))
-				
-				.accountNo(1L)
-				.accessLicense("")
-				.secretKey("444")
 				.build();
 		
 		this.messageProducer.send(taskMessage);
