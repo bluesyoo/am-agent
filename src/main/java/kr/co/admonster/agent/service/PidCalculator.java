@@ -15,10 +15,12 @@ public class PidCalculator {
 	 * @param message 입찰에 필요한 모든 정보를 담고 있는 BiddingTaskMessage 객체
 	 */
 	public void calculate(BiddingResultMessage message) {
-		log.info("Starting PID calculation for keyword: {}", message.getKeyword());
-		
-		double finalPrice = 0D;
+		String keywordId = message.getKeywordId();
 		double currentBid = message.getCurrentBid();
+		
+		log.info("Start PID calculation. keyword_id={}", keywordId);
+		
+		double finalPrice;
 		
 		// PID 계산에 필요한 현재 상태 변수 가져오기
 		int targetRank = message.getTargetRank();
@@ -35,7 +37,7 @@ public class PidCalculator {
 		
 		if (viewedRank == -1) {
 			// --- 1. 순위가 -1인 경우 특별 처리 ---
-			log.warn("Keyword '{}' not found in rank. Applying special bid increase logic.", message.getKeyword());
+			log.warn("Keyword not found in rank. Applying special bid increase. keyword_id={}", keywordId);
 			finalPrice = currentBid + 100.0; // 고정된 값만큼 인상
 			
 			// 적분 오차를 0으로 초기화하여 입찰가 폭등 방지
@@ -44,11 +46,13 @@ public class PidCalculator {
 		} else {
 			// --- 2. 순위가 존재하는 경우 PID 공식 적용 ---
 			double error = (double)targetRank - viewedRank;
-			log.debug("error = targetRank - viewedRank # {} = {} - {}", error, targetRank, viewedRank);
+			log.debug("error={} target_rank={} viewed_rank={}", error, targetRank, viewedRank);
+			
 			double newIntegralError = integralError + error;
-			log.debug("newIntegralError = integralError + error # {} = {} + {}", newIntegralError, integralError, error);
+			log.debug("new_integral_error={} integral_error={} error={}", newIntegralError, integralError, error);
+			
 			double derivative = error - previousError;
-			log.debug("derivative = error - previousError # {} = {} - {}", derivative, error, previousError);
+			log.debug("derivative={} error={} previous_error={}", derivative, error, previousError);
 			
 			finalPrice = currentBid + (kp * error) + (ki * newIntegralError) + (kd * derivative);
 			
@@ -62,7 +66,7 @@ public class PidCalculator {
 		// 계산 결과를 메시지 객체에 다시 저장
 		message.setFinalPrice(finalPrice);
 		
-		log.info("PID calculation complete for keyword '{}'. Change bid: {} -> {}", message.getKeyword(), currentBid, finalPrice);
+		log.info("Completed PID calculation successfully. keyword_id={} current_bid={} final_price={}", keywordId, currentBid, finalPrice);
 	}
 	
 }

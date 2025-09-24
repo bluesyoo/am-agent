@@ -31,15 +31,16 @@ public class BiddingListener {
 		int partition = record.partition();
 		long offset = record.offset();
 		
-		log.info("Received message key={} partition={} offset={} value={}", key, partition, offset, value);
+		log.info("Received bidding_task message. key={} partition={} offset={}", key, partition, offset);
+		log.debug("Message value={}", value);
 		
 		try {
 			this.biddingService.run(record.value());
 			ack.acknowledge();
 			
-			log.info("Successfully processed keywordId={} offset={}", value.getKeywordId(), offset);
+			log.info("Processed bidding_task successfully. keyword_id={} offset={}", value.getKeywordId(), offset);
 		} catch (Exception e) {
-			log.error("Failed to process message key={} offset={}. Error={}", key, offset, e.getMessage(), e);
+			log.error("Failed to process bidding_task. key={} offset={}", key, offset, e);
 		}
 	}
 	

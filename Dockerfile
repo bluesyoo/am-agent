@@ -1,29 +1,23 @@
-# --- 1단계: 빌드 환경 (Build Stage) ---
-# Java 21 JDK 이미지를 사용하여 프로젝트 빌드
-FROM eclipse-temurin:21-jdk-jammy AS builder
-WORKDIR /app
+FROM openjdk:21-slim
 
-# Maven 프로젝트 파일을 복사하여 의존성을 캐싱
-COPY pom.xml .
-COPY ad-common ad-common/
-COPY am-kafka-domain am-kafka-domain/
-COPY am-kafka-api am-kafka-api/
+ARG APP=am-agent
+ARG PROFILE
 
-# 모든 프로젝트를 빌드 (Maven Wrapper 사용)
-COPY . .
-RUN ./mvnw clean package -DskipTests
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Seoul
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8"
 
-# --- 2단계: 실행 환경 (Run Stage) ---
-# Java 21 JRE 이미지를 사용하여 가벼운 실행 환경 구성
-FROM eclipse-temurin:21-jre-jammy
-WORKDIR /app
+RUN apt-get update && \
+    apt-get install -y tzdata
 
-# 빌드 단계에서 생성된 JAR 파일을 복사
-# ad-dispatcher.jar는 예시이며, 실제 아티팩트명으로 변경해야 합니다.
-COPY --from=builder /app/ad-dispatcher/target/ad-dispatcher-1.0.0-SNAPSHOT.jar ad-dispatcher.jar
+RUN echo 'alias ll="ls -al"' >> ~/.bashrc && \
+    echo 'alias debug="tail -fn500 /volume/'${PROFILE}'/logs/'${APP}'.log"' >> ~/.bashrc
 
-# 애플리케이션 실행을 위한 포트 노출
-EXPOSE 8080
+WORKDIR /application
 
-# 애플리케이션 시작 명령어
-ENTRYPOINT ["java", "-jar", "ad-dispatcher.jar"]
+COPY target/${APP}.jar app.jar
+COPY target/classes/application.yml .
+COPY target/classes/log4j2-prod.xml .
+COPY target/classes/log4j2-stage.xml .
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dspring.config.location=/application/application.yml -jar /application/app.jar"]

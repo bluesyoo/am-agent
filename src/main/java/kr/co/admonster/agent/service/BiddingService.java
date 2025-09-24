@@ -41,26 +41,27 @@ public class BiddingService {
 	}
 	
 	public void run(BiddingTaskMessage taskMessage) {
+		String keywordId = taskMessage.getKeywordId();
+		log.info("Start bidding_task. keyword_id={}", keywordId);
+		
 		// Step 1: Create a BiddingResultMessage from the incoming task message.
 		BiddingResultMessage resultMessage = BiddingResultMessage.from(taskMessage);
-		
 		LinkedHashMap<String, Long> timestamps = resultMessage.getTimestamps();
 		
 		try {
 			timestamps.put(TimestampType.TOTAL_START.getValue(), System.currentTimeMillis());
 			
 			process(taskMessage, resultMessage, timestamps);
-			
 			update(taskMessage, resultMessage, timestamps);
 			
 			timestamps.put(TimestampType.TOTAL_END.getValue(), System.currentTimeMillis());
-			
 			resultMessage.setResultState(ResultState.SUCCESS);
+			
+			log.info("Completed bidding_task successfully. keyword_id={}", keywordId);
 		} catch (Exception e) {
-			log.error("Bidding task failed for keyword: {}, error: {}", taskMessage.getKeyword(), e.getMessage());
+			log.error("Failed to run bidding_task. keyword_id={}", keywordId, e);
 			
 			timestamps.put(TimestampType.TOTAL_END.getValue(), System.currentTimeMillis());
-			
 			resultMessage.setResultState(ResultState.FAILED);
 		} finally {
 			this.messageProducer.send(resultMessage);
@@ -68,6 +69,9 @@ public class BiddingService {
 	}
 	
 	private void process(BiddingTaskMessage taskMessage, BiddingResultMessage resultMessage, Map<String, Long> timestamps) throws Exception {
+		String keywordId = taskMessage.getKeywordId();
+		log.info("Start bidding process. keyword_id={}", keywordId);
+		
 		double finalPrice = 0D;
 		
 		switch (taskMessage.getBiddingType()) {
@@ -90,12 +94,15 @@ public class BiddingService {
 			
 		case SCHEDULED:
 			// 크롤링과 PID 계산을 생략하고, 미리 설정된 입찰가를 사용
-			log.info("Scheduled Bidding detected. Skipping crawl and PID calculation.");
+			log.info("Scheduled bidding detected. Skipping crawl and PID calculation. keyword_id={}", keywordId);
+			
 			finalPrice = taskMessage.getCurrentBid(); // bidding_task 생성시 설정
 			break;
 			
 		case ESTIMATED:
 			// 매체사 API를 통해 예상 입찰가 조회
+			log.info("Estimated bidding detected. Calling estimate API. keyword_id={}", keywordId);
+			
 			timestamps.put("estimate_api_start", System.currentTimeMillis());
 			// getEstimatedBid 메서드는 예상 입찰가를 반환해야 합니다.
 //			finalPrice = apiClient.getEstimatedBid(taskMessage.getKeyword(), taskMessage.getAccessLicense(), taskMessage.getSecretKey());
@@ -104,19 +111,24 @@ public class BiddingService {
 			
 		case PREDICTIVE:
 			// 예측 모델을 통해 입찰가 산정 (시간 측정)
+			log.info("Predictive bidding detected. Running predictive model. keyword_id={}", keywordId);
+			
 			timestamps.put("predictive_start", System.currentTimeMillis());
 //			finalPrice = getPredictedBid(taskMessage);
 			timestamps.put("predictive_end", System.currentTimeMillis());
 			
 		default:
-			log.error("Unknown bidding type: {}", taskMessage.getBiddingType());
+			log.error("Unknown bidding type. keyword_id={} type={}", keywordId, taskMessage.getBiddingType());
+			
 			throw new IllegalArgumentException("Invalid bidding type.");
 		}
 		
 		finalPrice = Math.max(Math.min(finalPrice, taskMessage.getMaximumBid()), taskMessage.getMinimumBid());
-		
 		resultMessage.setFinalPrice(finalPrice);
+		
+		log.info("Bidding process completed. keyword_id={} final_price={}", keywordId, finalPrice);
 	}
+
 	
 	// Step 4: Call the API with the now complete resultMessage.
 	// The method should be apiClient.updateBid(resultMessage).
@@ -125,11 +137,13 @@ public class BiddingService {
 		if (taskMessage.getAccessLicense().length() == 0) {
 			return;
 		}
+
+		String keywordId = taskMessage.getKeywordId();
+		log.info("Start update API call. keyword_id={}", keywordId);
 		
 		timestamps.put(TimestampType.API_CALL_START.getValue(), System.currentTimeMillis());
 		
 		// 1. 요청에 필요한 데이터 준비
-		String keywordId = taskMessage.getKeywordId();
 		String accountNo = taskMessage.getAccountNo();
 		String accessLicense = taskMessage.getAccessLicense();
 		String secretKey = taskMessage.getSecretKey();
@@ -157,6 +171,8 @@ public class BiddingService {
 				finalPrice.longValue());
 		
 		timestamps.put(TimestampType.API_CALL_END.getValue(), System.currentTimeMillis());
+		
+		log.info("Completed update API call successfully. keyword_id={} final_price={}", keywordId, finalPrice);
 	}
 	
 }

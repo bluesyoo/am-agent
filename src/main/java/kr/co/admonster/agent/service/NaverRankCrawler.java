@@ -29,14 +29,9 @@ public class NaverRankCrawler {
 	public void getRank(BiddingResultMessage message) throws Exception {
 		CampaignType campaignType = message.getCampaignType();
 		switch (campaignType) {
-		case WEB_SITE:
-			getPowerlinkRank(message);
-			break;
-		case SHOPPING:
-			getShoppingRank(message);
-			break;
-		default:
-			break;
+		case WEB_SITE -> getPowerlinkRank(message);
+		case SHOPPING -> getShoppingRank(message);
+		default -> log.warn("Unsupported campaign type. campaign_type={} keyword_id={}", campaignType, message.getKeywordId());
 		}
 	}
 	
@@ -46,11 +41,12 @@ public class NaverRankCrawler {
 	 * @throws Exception 크롤링 과정에서 오류가 발생했을 때
 	 */
 	private void getPowerlinkRank(BiddingResultMessage message) throws Exception {
-		DeviceType deviceType = message.getDeviceType();
-		
+		String keywordId = message.getKeywordId();
 		String keyword = message.getKeyword();
 		String displayUrl = message.getDisplayUrl();
-		log.info("Starting powerlink rank search for keyword: '{}', displayUrl: '{}' [{}]", keyword, displayUrl, deviceType);
+		DeviceType deviceType = message.getDeviceType();
+		
+		log.info("Start powerlink rank search. keyword_id={} keyword='{}' display_url={} device={}", keywordId, keyword, displayUrl, deviceType);
 		
 		try (Playwright playwright = Playwright.create()) {
 			String searchUrl = null;
@@ -76,12 +72,12 @@ public class NaverRankCrawler {
 			
 			// 네이버 검색 페이지로 이동
 			page.navigate(searchUrl + keyword);
-			log.debug("Navigated to powerlink search results page for keyword: {}", keyword);
+			log.debug("Navigated to powerlink search results. keyword_id={} url={}", keywordId, searchUrl + keyword);
 			
 			// 메인 광고 섹션이 존재할 때까지 최대 15초 대기
 			Locator adSection = page.locator(selectorAdSection);
 			adSection.waitFor(new Locator.WaitForOptions().setTimeout(15000));
-			log.info("Powerlink ad section found.");
+			log.info("Powerlink ad section found. keyword_id={}", keywordId);
 			
 			if (adSection.isVisible()) {
 				// 광고 섹션 내의 모든 광고 목록을 추출
@@ -92,7 +88,7 @@ public class NaverRankCrawler {
 				// 최소 하나의 광고가 나타날 때까지 최대 10초 대기
 				adElements.first().waitFor(new Locator.WaitForOptions().setTimeout(10000));
 				int adsCount = adElements.count();
-				log.info("Found {} powerlink ad elements.", adsCount);
+				log.info("Found {} powerlink ad elements. keyword_id={}", adsCount, keywordId);
 				
 				LinkedHashMap<String, Integer> adRanks = new LinkedHashMap<>();
 				
@@ -107,7 +103,7 @@ public class NaverRankCrawler {
 					String displayUrlText = currentAd.locator(selectorDisplayUrl).textContent().trim();
 					
 					adRanks.put(displayUrlText, inx + 1);
-					log.debug("Powerlink ad found: {} at rank {}", displayUrlText, inx + 1);
+					log.debug("Powerlink ad found. ad_display_url={} rank={} keyword_id={}", displayUrlText, inx + 1, keywordId);
 				}
 				
 				// 최종 순위를 메시지 객체에 설정
@@ -117,25 +113,28 @@ public class NaverRankCrawler {
 				message.setViewedRank(clientRank);
 				message.setViewedSlot(adsCount);
 				message.setCompetitorRanks(adRanks);
-				log.info("Powerlink ad final rank result: Client's ad rank is {}. Found {} ads.", clientRank, adRanks.size());
+				
+				log.info("Completed powerlink rank search successfully. keyword_id={} rank={} ads_count={}", keywordId, clientRank, adsCount);
 			} else {
-				log.warn("Powerlink ad section does not exist for keyword '{}'.", keyword);
+				log.warn("No powerlink ad section found. keyword_id={}", keywordId);
 				message.setViewedRank(-1);
+				message.setViewedSlot(0);
 			}
 		} catch (Exception e) {
-			log.error("Powerlink crawling failed for keyword '{}' with error: {}", keyword, e.getMessage(), e);
-			// 예외 발생 시 메시지 객체의 순위를 -1로 설정하고 예외를 다시 던짐
+			log.error("Failed to crawl powerlink ads. keyword_id={}", keywordId, e);
 			message.setViewedRank(-1);
+			message.setViewedSlot(0);
 			throw e;
 		}
 	}
 	
 	private void getShoppingRank(BiddingResultMessage message) throws Exception {
-		DeviceType deviceType = message.getDeviceType();
-		
+		String keywordId = message.getKeywordId();
 		String keyword = message.getKeyword();
 		String displayUrl = message.getDisplayUrl();
-		log.info("Starting shopping rank search for keyword: '{}', displayUrl: '{}' [{}]", keyword, displayUrl, deviceType);
+		DeviceType deviceType = message.getDeviceType();
+		
+		log.info("Start shopping rank search. keyword_id={} keyword='{}' display_url={} device={}", keywordId, keyword, displayUrl, deviceType);
 		
 		try (Playwright playwright = Playwright.create()) {
 			String searchUrl = null;
@@ -160,12 +159,12 @@ public class NaverRankCrawler {
 			
 			// 네이버 쇼핑 검색 페이지로 이동
 			page.navigate(searchUrl + keyword);
-			log.debug("Navigated to shopping search results page for keyword: {}", keyword);
+			log.debug("Navigated to shopping search results. keyword_id={} url={}", keywordId, searchUrl + keyword);
 			
 			// 광고 섹션 선택
 			Locator adSection = page.locator(selectorAdSection);
 			adSection.waitFor(new Locator.WaitForOptions().setTimeout(15000));
-			log.info("Shopping ad section found.");
+			log.info("Shopping ad section found. keyword_id={}", keywordId);
 			
 			if (adSection.isVisible()) {
 				// 광고 아이템 목록
@@ -173,7 +172,7 @@ public class NaverRankCrawler {
 				
 				adElements.first().waitFor(new Locator.WaitForOptions().setTimeout(10000));
 				int adsCount = adElements.count();
-				log.info("Found {} shopping ad elements.", adsCount);
+				log.info("Found {} shopping ad elements. keyword_id={}", adsCount, keywordId);
 				
 				LinkedHashMap<String, Integer> adRanks = new LinkedHashMap<>();
 				
@@ -185,7 +184,7 @@ public class NaverRankCrawler {
 					
 					// 광고의 순위를 맵에 저장
 					adRanks.put(displayUrlText, inx + 1);
-					log.debug("Shopping ad found: {} at rank {}", displayUrlText, inx + 1);
+					log.debug("Shopping ad found. ad_display_url={} rank={} keyword_id={}", displayUrlText, inx + 1, keywordId);
 				}
 				
 				// 최종 순위를 메시지 객체에 설정
@@ -195,14 +194,15 @@ public class NaverRankCrawler {
 				message.setViewedRank(clientRank);
 				message.setViewedSlot(adsCount);
 				message.setCompetitorRanks(adRanks);
-				log.info("Shopping ad final rank result: Client's ad rank is {}. Found {} ads.", clientRank, adRanks.size());
+				
+				log.info("Completed shopping rank search successfully. keyword_id={} rank={} ads_count={}", keywordId, clientRank, adsCount);
 			} else {
-				log.warn("Shopping ad section does not exist for keyword '{}'.", keyword);
+				log.warn("No shopping ad section found. keyword_id={}", keywordId);
 				message.setViewedRank(-1);
 				message.setViewedSlot(0);
 			}
 		} catch (Exception e) {
-			log.error("Shopping crawling failed for keyword '{}' with error: {}", keyword, e.getMessage(), e);
+			log.error("Failed to crawl shopping ads. keyword_id={}", keywordId, e);
 			message.setViewedRank(-1);
 			message.setViewedSlot(0);
 			throw e;
