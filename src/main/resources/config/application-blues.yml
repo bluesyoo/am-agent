@@ -44,7 +44,7 @@ spring:
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      auto-offset-reset: earliest       # [earliest|latest]
+      auto-offset-reset: latest         # [earliest|latest]
       enable-auto-commit: false         # 수동 커밋 권장
       group-id: am-group                # Kafka consumer group ID
     producer:
@@ -56,9 +56,11 @@ spring:
       linger-ms: 1                      # 지정 시간(ms) 내 대기 후 배치 전송
       retries: 3                        # 전송 실패 시 재시도 횟수
     listener:
-      ack-mode: manual                  # 수동 ack (manual 또는 manual_immediate)
-      concurrency: 3                    # Consumer 동시 실행 수
+      ack-mode: manual_immediate        # 수동 ack (manual 또는 manual_immediate)
+      concurrency: 1                    # Consumer 동시 실행 수
       enabled: true
+      missing-topics-fatal: false
+      type: single
     properties:
       security.protocol: PLAINTEXT      # SASL/SSL 등 보안 설정 가능
 

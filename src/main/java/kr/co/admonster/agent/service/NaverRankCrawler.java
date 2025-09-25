@@ -1,7 +1,9 @@
 package kr.co.admonster.agent.service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import org.springframework.stereotype.Component;
 
@@ -26,6 +28,12 @@ public class NaverRankCrawler {
 	private final String shoppingP = "https://search.shopping.naver.com/search/all?query=";
 	private final String shoppingM = "https://msearch.shopping.naver.com/search/all?query=";
 	
+	private final List<String> userAgents = List.of(
+			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15",
+			"Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 Chrome/118.0.5993.117 Mobile Safari/537.36"
+		);
+	
 	public void getRank(BiddingResultMessage message) throws Exception {
 		CampaignType campaignType = message.getCampaignType();
 		switch (campaignType) {
@@ -41,12 +49,16 @@ public class NaverRankCrawler {
 	 * @throws Exception 크롤링 과정에서 오류가 발생했을 때
 	 */
 	private void getPowerlinkRank(BiddingResultMessage message) throws Exception {
+		Random random = new Random();
+		int delay = 1000 + random.nextInt(2000); // 1~3초 대기
+		Thread.sleep(delay);
+		
 		String keywordId = message.getKeywordId();
 		String keyword = message.getKeyword();
 		String displayUrl = message.getDisplayUrl();
 		DeviceType deviceType = message.getDeviceType();
 		
-		log.info("Start powerlink rank search. keyword_id={} keyword='{}' display_url={} device={}", keywordId, keyword, displayUrl, deviceType);
+		log.info("Start powerlink rank search. keyword_id={} keyword='{}' display_url={} device={} delay={}", keywordId, keyword, displayUrl, deviceType, delay);
 		
 		try (Playwright playwright = Playwright.create()) {
 			String searchUrl = null;
@@ -68,7 +80,13 @@ public class NaverRankCrawler {
 			
 			// 브라우저 실행 (헤드리스 모드)
 			Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-			Page page = browser.newPage();
+//			Page page = browser.newPage();
+			
+//			Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
+			
+			Page page = browser.newPage(new Browser.NewPageOptions()
+					.setUserAgent(this.userAgents.get(random.nextInt(this.userAgents.size()))));
+//					.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"));
 			
 			// 네이버 검색 페이지로 이동
 			page.navigate(searchUrl + keyword);
