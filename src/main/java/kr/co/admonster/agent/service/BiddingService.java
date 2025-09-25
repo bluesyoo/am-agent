@@ -56,13 +56,10 @@ public class BiddingService {
 			
 			timestamps.put(TimestampType.TOTAL_END.getValue(), System.currentTimeMillis());
 			resultMessage.setResultState(ResultState.SUCCESS);
-			
-			log.info("Completed bidding_task successfully. keyword_id={}", keywordId);
 		} catch (Exception e) {
-			log.error("Failed to run bidding_task. keyword_id={}", keywordId, e);
-			
 			timestamps.put(TimestampType.TOTAL_END.getValue(), System.currentTimeMillis());
 			resultMessage.setResultState(ResultState.FAILED);
+			throw new RuntimeException("Bidding task failed. keyword_id=" + keywordId);
 		} finally {
 			this.messageProducer.send(resultMessage);
 		}

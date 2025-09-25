@@ -36,11 +36,11 @@ public class BiddingListener {
 		
 		try {
 			this.biddingService.run(record.value());
-			ack.acknowledge();
-			
 			log.info("Processed bidding_task successfully. keyword_id={} offset={}", value.getKeywordId(), offset);
 		} catch (Exception e) {
 			log.error("Failed to process bidding_task. key={} offset={}", key, offset, e);
+		} finally {
+			ack.acknowledge();
 		}
 	}
 	

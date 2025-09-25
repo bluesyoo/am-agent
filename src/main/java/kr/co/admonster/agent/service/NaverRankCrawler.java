@@ -1,7 +1,6 @@
 package kr.co.admonster.agent.service;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
@@ -28,11 +27,11 @@ public class NaverRankCrawler {
 	private final String shoppingP = "https://search.shopping.naver.com/search/all?query=";
 	private final String shoppingM = "https://msearch.shopping.naver.com/search/all?query=";
 	
-	private final List<String> userAgents = List.of(
-			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15",
-			"Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 Chrome/118.0.5993.117 Mobile Safari/537.36"
-		);
+//	private final List<String> userAgents = List.of(
+//			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+//			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15",
+//			"Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 Chrome/118.0.5993.117 Mobile Safari/537.36"
+//		);
 	
 	public void getRank(BiddingResultMessage message) throws Exception {
 		CampaignType campaignType = message.getCampaignType();
@@ -50,7 +49,7 @@ public class NaverRankCrawler {
 	 */
 	private void getPowerlinkRank(BiddingResultMessage message) throws Exception {
 		Random random = new Random();
-		int delay = 1000 + random.nextInt(2000); // 1~3초 대기
+		int delay = 300 + random.nextInt(1000); // 0.3~1초 대기
 		Thread.sleep(delay);
 		
 		String keywordId = message.getKeywordId();
@@ -58,21 +57,23 @@ public class NaverRankCrawler {
 		String displayUrl = message.getDisplayUrl();
 		DeviceType deviceType = message.getDeviceType();
 		
-		log.info("Start powerlink rank search. keyword_id={} keyword='{}' display_url={} device={} delay={}", keywordId, keyword, displayUrl, deviceType, delay);
+//		String userAgent = this.userAgents.get(random.nextInt(this.userAgents.size()));
+		String userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36";
+		
+		log.info("Start powerlink rank search. keyword_id={} keyword='{}' display_url={} device={}", keywordId, keyword, displayUrl, deviceType);
+		
+		String searchUrl = (deviceType == DeviceType.MOBILE) ? this.powerlinkM : this.powerlinkP;
 		
 		try (Playwright playwright = Playwright.create()) {
-			String searchUrl = null;
 			String selectorAdSection = null;
 			String selectorAdElement = null;
 			String selectorDisplayUrl = null;
 			
 			if (deviceType == DeviceType.MOBILE) {
-				searchUrl = this.powerlinkM;
 				selectorAdSection = "ul#power_link_body";
 				selectorAdElement = "li.bx.img_type";
 				selectorDisplayUrl = "div.url_inner span.url";
 			} else {
-				searchUrl = this.powerlinkP;
 				selectorAdSection = "div#power_link_body";
 				selectorAdElement = "li.lst.js-hover-item";
 				selectorDisplayUrl = "span.lnk_url_area a.lnk_url";
@@ -85,12 +86,12 @@ public class NaverRankCrawler {
 //			Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
 			
 			Page page = browser.newPage(new Browser.NewPageOptions()
-					.setUserAgent(this.userAgents.get(random.nextInt(this.userAgents.size()))));
+					.setUserAgent(userAgent));
 //					.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"));
 			
 			// 네이버 검색 페이지로 이동
 			page.navigate(searchUrl + keyword);
-			log.debug("Navigated to powerlink search results. keyword_id={} url={}", keywordId, searchUrl + keyword);
+			log.debug("Navigated to powerlink search results. keyword_id={} url={} userAgent={}", keywordId, searchUrl + keyword, userAgent);
 			
 			// 메인 광고 섹션이 존재할 때까지 최대 15초 대기
 			Locator adSection = page.locator(selectorAdSection);
@@ -139,7 +140,7 @@ public class NaverRankCrawler {
 				message.setViewedSlot(0);
 			}
 		} catch (Exception e) {
-			log.error("Failed to crawl powerlink ads. keyword_id={}", keywordId, e);
+			log.error("Failed to crawl powerlink ads. keyword_id={} url={}", keywordId, userAgent, (searchUrl + keyword));
 			message.setViewedRank(-1);
 			message.setViewedSlot(0);
 			throw e;
