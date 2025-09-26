@@ -32,11 +32,11 @@
   </Appenders>
 
   <Loggers>
-    <Logger name="org.apache.kafka.clients" level="WARN" additivity="false"/>
-    <Logger name="org.springframework.kafka" level="WARN" additivity="false"/>
-    <Logger name="org.apache.kafka.common.utils.AppInfoParser" level="ERROR" additivity="false"/>
+    <Logger name="kr.co.admonster" level="INFO" additivity="false">
+      <AppenderRef ref="consoleAppender"/>
+    </Logger>
 
-    <Root level="INFO">
+    <Root level="WARN">
       <AppenderRef ref="consoleAppender"/>
       <AppenderRef ref="fileAppender"/>
     </Root>
