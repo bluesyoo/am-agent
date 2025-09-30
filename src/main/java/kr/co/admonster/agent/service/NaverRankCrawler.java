@@ -80,11 +80,7 @@ public class NaverRankCrawler {
 			}
 			
 			// 브라우저 실행 (헤드리스 모드)
-			Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-//			Page page = browser.newPage();
-			
-//			Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(false));
-			
+			Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true)); // true
 			Page page = browser.newPage(new Browser.NewPageOptions()
 					.setUserAgent(userAgent));
 //					.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"));
