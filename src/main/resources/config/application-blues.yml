@@ -46,7 +46,7 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       auto-offset-reset: earliest       # [earliest|latest]
       enable-auto-commit: false         # 수동 커밋 권장
-      group-id: am-group                # Kafka consumer group ID
+      group-id: am-agent                # Kafka consumer group ID
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer

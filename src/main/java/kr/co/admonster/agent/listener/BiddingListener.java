@@ -23,7 +23,6 @@ public class BiddingListener {
 	@KafkaListener(
 			id = "bidding-listener",
 			topics = "#{@kafkaTopicProvider.BIDDING}",
-			groupId = "am-agent",
 			containerFactory = "kafkaListenerContainerFactory")
 	public void onMessage(ConsumerRecord<String, BiddingTaskMessage> record, Acknowledgment ack) {
 		String key = record.key();
