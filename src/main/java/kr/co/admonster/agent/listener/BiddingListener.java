@@ -6,6 +6,7 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 import kr.co.admonster.agent.service.BiddingService;
+import kr.co.admonster.common.constants.Constants;
 import kr.co.admonster.kafka.domain.BiddingTaskMessage;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,7 +32,7 @@ public class BiddingListener {
 		int partition = record.partition();
 		long offset = record.offset();
 		
-		log.info("Received bidding_task message. key={} partition={} offset={}", key, partition, offset);
+		log.info("Received bidding_task message. key={} partition={} offset={} @{}", key, partition, offset, Constants.FMT_DATETIME.format(value.getTimestamp()));
 		log.debug("Message value={}", value);
 		
 		try {
